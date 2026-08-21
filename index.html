@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07101e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crypto Portfolio">
+<title>Crypto Portfolio</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#07101e;color:#eef3f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:900px;margin:auto;padding:18px}
+h1{margin:0;font-size:28px}
+.sub{color:#94a3b8;font-size:12px;margin:5px 0 18px}
+nav{display:flex;gap:6px;overflow:auto;margin-bottom:14px}
+button{border:1px solid #334862;background:#17253a;color:white;border-radius:9px;padding:9px 12px;font-weight:700}
+button.active,button.primary{background:#125266}
+.card{background:#101a2b;border:1px solid #263750;border-radius:14px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.kpi{border:1px solid #263750;border-radius:11px;padding:11px}
+.label{font-size:11px;color:#94a3b8}
+.value{font-size:20px;font-weight:800;margin-top:4px}
+.pos{color:#4ade80}.neg{color:#fb7185}.info{color:#67e8f9}
+.page{display:none}.page.active{display:block}
+.asset{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #263750}
+.coin{font-size:18px;font-weight:800}
+.small{font-size:12px;color:#94a3b8}
+input,select,textarea{width:100%;background:#0b1525;color:white;border:1px solid #334862;border-radius:8px;padding:8px}
+textarea{min-height:90px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:7px;border-bottom:1px solid #263750;text-align:left}
+.scroll{overflow:auto}
+.progress{height:7px;background:#1d2a3e;border-radius:7px;overflow:hidden;margin-top:4px}
+.progress div{height:100%;background:#67e8f9}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,1fr)}main{padding:13px}}
+</style>
+</head>
+
+<body>
+<main>
+
+<h1>Crypto Portfolio</h1>
+<div class="sub">Carteira cripto · cotação online · posição automática</div>
+
+<nav>
+<button class="tab active" data-page="home">Carteira</button>
+<button class="tab" data-page="ops">Operações</button>
+<button class="tab" data-page="import">Importar</button>
+<button class="tab" data-page="audit">Auditoria</button>
+</nav>
+
+<section id="home" class="page active">
+
+<div class="grid">
+<div class="kpi"><div class="label">Patrimônio</div><div id="patrimonio" class="value">R$ 0</div></div>
+<div class="kpi"><div class="label">Custo</div><div id="custo" class="value">R$ 0</div></div>
+<div class="kpi"><div class="label">P&L</div><div id="pnl" class="value">R$ 0</div></div>
+<div class="kpi"><div class="label">ROI</div><div id="roi" class="value">0%</div></div>
+<div class="kpi"><div class="label">Realizado</div><div id="realizado" class="value">R$ 0</div></div>
+<div class="kpi"><div class="label">Cotação</div><div id="atualizado" class="value" style="font-size:12px">—</div></div>
+</div>
+
+<div class="card">
+<button class="primary" onclick="cotacoes()">↻ Atualizar cotações</button>
+<div id="status" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h3>Minha carteira</h3>
+<div id="positions"></div>
+</div>
+
+<div class="card">
+<h3>Distribuição</h3>
+<div id="allocation"></div>
+</div>
+
+</section>
+
+<section id="ops" class="page">
+<div class="card">
+<button class="primary" onclick="novaOperacao()">+ Operação</button>
+<div id="tabelaOps" class="scroll" style="margin-top:12px"></div>
+</div>
+</section>
+
+<section id="import" class="page">
+
+<div class="card">
+<h3>Importar CSV</h3>
+<p class="small">Aceita colunas como date, asset/symbol, type/side, quantity/qty, price e fee.</p>
+<input id="csv" type="file" accept=".csv,.txt">
+<div id="importStatus" class="small"></div>
+</div>
+
+<div class="card">
+<h3>Registrar negociação</h3>
+<textarea id="texto" placeholder="Ex.: comprei 0,015 BTC por R$ 580000 taxa R$ 8"></textarea>
+<button class="primary" onclick="interpretar()" style="margin-top:8px">Interpretar</button>
+</div>
+
+<div class="card">
+<h3>Revisão</h3>
+<div id="revisao"></div>
+</div>
+
+</section>
+
+<section id="audit" class="page">
+
+<div class="grid">
+<div class="kpi"><div class="label">Duplicidades</div><div id="duplicidades" class="value">0</div></div>
+<div class="kpi"><div class="label">Sem TXID</div><div id="semTxid" class="value">0</div></div>
+<div class="kpi"><div class="label">Transferências</div><div id="transferencias" class="value">0</div></div>
+<div class="kpi"><div class="label">Saldo negativo</div><div id="saldoNegativo" class="value">0</div></div>
+<div class="kpi"><div class="label">Sem cotação</div><div id="semCotacao" class="value">0</div></div>
+<div class="kpi"><div class="label">Integridade</div><div id="integridade" class="value info">100/100</div></div>
+</div>
+
+<div class="card">
+<div id="achados"></div>
+</div>
+
+</section>
+
+<script>
+
+const KEY="crypto_portfolio_simple_v1";
+
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||{
+ operacoes:[],
+ precos:{},
+ atualizado:null
+};
+
+function salvar(){
+ localStorage.setItem(KEY,JSON.stringify(db));
+}
+
+function numero(x){
+ if(typeof x==="number")return x;
+ let s=String(x||"").trim();
+ if(s.includes(",")&&s.includes("."))s=s.replace(/\./g,"").replace(",",".");
+ else s=s.replace(",",".");
+ return Number(s)||0;
+}
+
+function moeda(x){
+ return new Intl.NumberFormat("pt-BR",{
+  style:"currency",
+  currency:"BRL"
+ }).format(x||0);
+}
+
+function percentual(x){
+ return (x||0).toFixed(2).replace(".",",")+"%";
+}
+
+function id(){
+ return Math.random().toString(36).slice(2)+Date.now();
+}
+
+function nova(){
+ return {
+  id:id(),
+  date:new Date().toISOString().slice(0,10),
+  asset:"BTC",
+  type:"BUY",
+  quantity:0,
+  price:0,
+  fee:0,
+  txid:""
+ };
+}
+
+document.querySelectorAll(".tab").forEach(b=>{
+ b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  document.getElementById(b.dataset.page).classList.add("active");
+  render();
+ };
+});
+
+function calcular(){
+
+ let ativos={};
+ let realizado=0;
+
+ [...db.operacoes]
+ .sort((a,b)=>a.date.localeCompare(b.date))
+ .forEach(o=>{
+
+  let a=(o.asset||"").toUpperCase();
+  let q=numero(o.quantity);
+  let valor=q*numero(o.price);
+  let fee=numero(o.fee);
+
+  if(!ativos[a])ativos[a]={q:0,custo:0};
+
+  if(o.type==="BUY"){
+   ativos[a].q+=q;
+   ativos[a].custo+=valor+fee;
+  }
+
+  if(o.type==="SELL"){
+   let p=ativos[a];
+   let medio=p.q?p.custo/p.q:0;
+   realizado+=valor-fee-q*medio;
+   p.q-=q;
+   p.custo-=q*medio;
+  }
+
+  if(o.type==="TRANSFER_IN"){
+   ativos[a].q+=q;
+  }
+
+  if(o.type==="TRANSFER_OUT"){
+   ativos[a].q-=q;
+  }
+
+ });
+
+ let linhas=[];
+ let patrimonio=0;
+ let custo=0;
+
+ for(let a in ativos){
+
+  if(ativos[a].q<=0)continue;
+
+  let preco=numero(db.precos[a]);
+  let valor=ativos[a].q*preco;
+
+  patrimonio+=valor;
+  custo+=ativos[a].custo;
+
+  linhas.push({
+   asset:a,
+   quantidade:ativos[a].q,
+   custo:ativos[a].custo,
+   medio:ativos[a].custo/ativos[a].q,
+   preco:preco,
+   valor:valor,
+   pnl:valor-ativos[a].custo
+  });
+ }
+
+ let pnl=patrimonio-custo+realizado;
+ let roi=custo?pnl/custo*100:0;
+
+ return {linhas,patrimonio,custo,realizado,pnl,roi};
+}
+
+function renderCarteira(){
+
+ let c=calcular();
+
+ patrimonio.textContent=moeda(c.patrimonio);
+ custo.textContent=moeda(c.custo);
+ pnl.textContent=moeda(c.pnl);
+ roi.textContent=percentual(c.roi);
+ realizado.textContent=moeda(c.realizado);
+
+ pnl.className="value "+(c.pnl>=0?"pos":"neg");
+ roi.className="value "+(c.roi>=0?"pos":"neg");
+
+ atualizado.textContent=db.atualizado?
+ new Date(db.atualizado).toLocaleTimeString("pt-BR"):"—";
+
+ positions.innerHTML=c.linhas.length?
+ c.linhas.map(x=>`
+
+ <div class="asset">
+
+ <div>
+ <div class="coin">${x.asset}</div>
+ <div class="small">${x.quantidade} ${x.asset}</div>
+ <div class="small">Custo médio: ${moeda(x.medio)}</div>
+ </div>
+
+ <div style="text-align:right">
+ <div class="coin">${moeda(x.valor)}</div>
+ <div class="${x.pnl>=0?"pos":"neg"}">${moeda(x.pnl)}</div>
+ <div class="small">Cotação: ${moeda(x.preco)}</div>
+ </div>
+
+ </div>
+
+ `).join("")
+ :"<div class='small'>Nenhuma posição cadastrada.</div>";
+
+ let total=c.patrimonio||1;
+
+ allocation.innerHTML=c.linhas.map(x=>`
+
+ <div style="margin:9px 0">
+
+ <div style="display:flex;justify-content:space-between">
+ <b>${x.asset}</b>
+ <span>${percentual(x.valor/total*100)}</span>
+ </div>
+
+ <div class="progress">
+ <div style="width:${x.valor/total*100}%"></div>
+ </div>
+
+ </div>
+
+ `).join("");
+
+}
+
+async function cotacoes(){
+
+ status.textContent="Atualizando cotações...";
+
+ const mapa={
+ BTC:"bitcoin",
+ ETH:"ethereum",
+ SOL:"solana",
+ USDT:"tether",
+ USDC:"usd-coin",
+ XRP:"ripple",
+ ADA:"cardano",
+ DOGE:"dogecoin",
+ BNB:"binancecoin",
+ AVAX:"avalanche-2",
+ LINK:"chainlink",
+ DOT:"polkadot",
+ LTC:"litecoin"
+ };
+
+ let ativos=[...new Set(
+  db.operacoes.map(o=>(o.asset||"").toUpperCase()).filter(Boolean)
+ )];
+
+ let conhecidos=ativos.filter(a=>mapa[a]);
+
+ if(!conhecidos.length){
+  status.textContent="Nenhum ativo conhecido para atualizar.";
+  return;
+ }
+
+ try{
+
+  let url=
+  "https://api.coingecko.com/api/v3/simple/price?ids="+
+  conhecidos.map(a=>mapa[a]).join(",")+
+  "&vs_currencies=brl";
+
+  let resposta=await fetch(url);
+
+  if(!resposta.ok)throw Error();
+
+  let dados=await resposta.json();
+
+  conhecidos.forEach(a=>{
+   let preco=dados[mapa[a]]?.brl;
+   if(preco)db.precos[a]=preco;
+  });
+
+  db.atualizado=new Date().toISOString();
+
+  salvar();
+  render();
+
+  status.textContent="Cotações atualizadas.";
+
+ }catch(e){
+
+  status.textContent=
+  "Não foi possível atualizar. A última cotação continua salva.";
+
+ }
+
+}
+
+function novaOperacao(){
+
+ db.operacoes.push(nova());
+ salvar();
+ render();
+
+}
+
+function editar(i,c,v){
+
+ db.operacoes[i][c]=v;
+ salvar();
+ render();
+
+}
+
+function renderOps(){
+
+ if(!db.operacoes.length){
+  tabelaOps.innerHTML="<div class='small'>Nenhuma operação.</div>";
+  return;
+ }
+
+ tabelaOps.innerHTML=`
+
+ <table>
+
+ <tr>
+ <th>Data</th>
+ <th>Ativo</th>
+ <th>Tipo</th>
+ <th>Qtd.</th>
+ <th>Preço</th>
+ <th>Taxa</th>
+ <th></th>
+ </tr>
+
+ ${db.operacoes.map((o,i)=>`
+
+ <tr>
+
+ <td>
+ <input type=date value="${o.date}"
+ onchange="editar(${i},'date',this.value)">
+ </td>
+
+ <td>
+ <input value="${o.asset}"
+ onchange="editar(${i},'asset',this.value.toUpperCase())">
+ </td>
+
+ <td>
+ <select onchange="editar(${i},'type',this.value)">
+ ${["BUY","SELL","TRANSFER_IN","TRANSFER_OUT"].map(t=>
+ `<option ${o.type===t?"selected":""}>${t}</option>`
+ ).join("")}
+ </select>
+ </td>
+
+ <td>
+ <input type=number step=any value="${o.quantity}"
+ onchange="editar(${i},'quantity',this.value)">
+ </td>
+
+ <td>
+ <input type=number step=any value="${o.price}"
+ onchange="editar(${i},'price',this.value)">
+ </td>
+
+ <td>
+ <input type=number step=any value="${o.fee}"
+ onchange="editar(${i},'fee',this.value)">
+ </td>
+
+ <td>
+ <button onclick="db.operacoes.splice(${i},1);salvar();render()">×</button>
+ </td>
+
+ </tr>
+
+ `).join("")}
+
+ </table>
+
+ `;
+
+}
+
+document.getElementById("csv").onchange=e=>{
+
+ let reader=new FileReader();
+
+ reader.onload=()=>{
+
+  let linhas=reader.result
+   .split(/\r?\n/)
+   .filter(x=>x.trim());
+
+  if(linhas.length<2)return;
+
+  let sep=linhas[0].includes(";")?";":",";
+
+  let cab=linhas[0].split(sep)
+   .map(x=>x.trim().toLowerCase());
+
+  let mapa={
+   date:"date",
+   asset:"asset",
+   symbol:"asset",
+   side:"type",
+   type:"type",
+   quantity:"quantity",
+   qty:"quantity",
+   price:"price",
+   fee:"fee"
+  };
+
+  let qtd=0;
+
+  linhas.slice(1).forEach(l=>{
+
+   let v=l.split(sep);
+   let o=nova();
+
+   cab.forEach((c,i)=>{
+    if(mapa[c])o[mapa[c]]=v[i]||"";
+   });
+
+   o.quantity=numero(o.quantity);
+   o.price=numero(o.price);
+   o.fee=numero(o.fee);
+
+   o.type=String(o.type).toUpperCase();
+
+   if(!["BUY","SELL","TRANSFER_IN","TRANSFER_OUT"].includes(o.type))
+    o.type="BUY";
+
+   db.operacoes.push(o);
+   qtd++;
+
+  });
+
+  salvar();
+  render();
+
+  importStatus.textContent=
+  qtd+" operação(ões) importada(s).";
+
+ };
+
+ reader.readAsText(e.target.files[0]);
+
+};
+
+function interpretar(){
+
+ let t=document.getElementById("texto").value;
+ let o=nova();
+
+ let a=t.match(/\b(BTC|ETH|SOL|USDT|USDC|XRP|ADA|DOGE|BNB|AVAX|LINK|DOT|LTC)\b/i);
+ if(a)o.asset=a[1].toUpperCase();
+
+ o.type=/vend/i.test(t)?"SELL":"BUY";
+
+ let q=t.match(/(?:compr(?:ei|a)|vend(?:i|a))\D{0,15}([0-9]+(?:[.,][0-9]+)?)/i);
+ if(q)o.quantity=numero(q[1]);
+
+ let p=t.match(/(?:por|a|preço|valor)\D{0,10}(?:R\$)?\s*([0-9.]+(?:,[0-9]+)?)/i);
+ if(p)o.price=numero(p[1]);
+
+ let f=t.match(/taxa\D{0,10}(?:R\$)?\s*([0-9.,]+)/i);
+ if(f)o.fee=numero(f[1]);
+
+ db.operacoes.push(o);
+
+ salvar();
+ render();
+
+}
+
+function auditoria(){
+
+ let mapa=new Map();
+ let dup=0;
+
+ db.operacoes.forEach(o=>{
+
+  let k=[
+   o.date,o.asset,o.type,
+   numero(o.quantity),
+   numero(o.price),
+   numero(o.fee)
+  ].join("|");
+
+  if(mapa.has(k))dup++;
+  mapa.set(k,1);
+
+ });
+
+ let semTxid=db.operacoes.filter(o=>
+  (o.type==="BUY"||o.type==="SELL")&&!o.txid
+ ).length;
+
+ let transfer=db.operacoes.filter(o=>
+  o.type==="TRANSFER_IN"||o.type==="TRANSFER_OUT"
+ ).length;
+
+ let c=calcular();
+ let saldoNeg=c.linhas.filter(x=>x.quantidade<0).length;
+ let semPreco=c.linhas.filter(x=>!x.preco).length;
+
+ let score=Math.max(
+  0,
+  100-
+  dup*10-
+  Math.min(20,semTxid)-
+  saldoNeg*25-
+  semPreco*5
+ );
+
+ duplicidades.textContent=dup;
+ semTxidEl=semTxid;
+ document.getElementById("semTxid").textContent=semTxid;
+ document.getElementById("transferencias").textContent=transfer;
+ document.getElementById("saldoNegativo").textContent=saldoNeg;
+ document.getElementById("semCotacao").textContent=semPreco;
+ document.getElementById("integridade").textContent=
+  Math.round(score)+"/100";
+
+ let ach=[];
+
+ if(dup)ach.push("Possíveis operações duplicadas.");
+ if(semTxid)ach.push(semTxid+" compra(s)/venda(s) sem TXID.");
+ if(saldoNeg)ach.push("Existe saldo negativo. Pode haver operação faltante.");
+ if(semPreco)ach.push("Existem ativos sem cotação.");
+
+ document.getElementById("achados").innerHTML=
+ ach.length?
+ ach.map(x=>`<div style="padding:10px;color:#facc15">${x}</div>`).join("")
+ :"<div class='pos'>✓ Nenhuma inconsistência básica encontrada.</div>";
+
+}
+
+function render(){
+
+ renderCarteira();
+ renderOps();
+ auditoria();
+
+}
+
+render();
+
+</script>
+</body>
+</html>
